@@ -28,25 +28,10 @@ CIFAR_NUM_BATCHES = int(math.ceil(CIFAR_EPOCH_SIZE / BATCH_SIZE))
 # -----------------------------------------------------------------------------
 
 
-def get_cifar_learning_rate(i):
-    learning_rate = 0.1
-    if i >= 60:
-        learning_rate *= 0.2
-    if i >= 120:
-        learning_rate *= 0.2
-    if i >= 160:
-        learning_rate *= 0.2
-    return learning_rate
-
-
-# -----------------------------------------------------------------------------
-
-
 def _train(
     image_shape,
     model,
     num_epochs,
-    get_learning_rate,
     l2_regularization_scale=5e-4,
 ):
     logger.info("building graph")
@@ -60,10 +45,7 @@ def _train(
         dtype=tf.int32,
     )
 
-    training = tf.placeholder_with_default(False, shape=())
-    learning_rate = tf.placeholder(tf.float32, shape=())
-
-    logits = model(x, training=training)
+    logits = model(x, training=True)
 
     loss = tf.losses.sparse_softmax_cross_entropy(
         labels=y_, logits=logits,
@@ -74,9 +56,7 @@ def _train(
     )
     total_loss = loss + regularization_loss
 
-    optimizer = tf.train.MomentumOptimizer(
-        learning_rate, 0.9, use_nesterov=True,
-    )
+    optimizer = tf.train.MomentumOptimizer(0.1, 0.9, use_nesterov=True)
     train_op = tf.contrib.training.create_train_op(total_loss, optimizer)
 
     with tf.Session() as sess:
@@ -86,10 +66,7 @@ def _train(
             for j in range(CIFAR_NUM_BATCHES):
                 start_time = time.time()
 
-                sess.run(train_op, feed_dict={
-                    training: True,
-                    learning_rate: get_learning_rate(i),
-                })
+                sess.run(train_op)
 
                 batch_time = time.time() - start_time
                 logging.info('epoch %d, batch %d: %.3fs', i, j, batch_time)
@@ -110,7 +87,6 @@ def train_cifar10(gated):
         cifar.IMAGE_SHAPE_CHANNELS_FIRST,
         functools.partial(model, data_format='channels_first'),
         CIFAR_NUM_EPOCHS,
-        get_cifar_learning_rate,
     )
 
 
