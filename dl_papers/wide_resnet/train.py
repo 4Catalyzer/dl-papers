@@ -1,12 +1,12 @@
 import functools
 import logging
+import time
 
 import click
 import tensorflow as tf
 
 from dl_papers.common.cli import cli
 from dl_papers.common.losses import global_l2_regularization_loss
-from dl_papers.common.summary import SummaryManager
 from dl_papers.common.train import run_epochs
 from dl_papers.datasets import cifar
 
@@ -75,17 +75,15 @@ def _train(
     )
     train_op = tf.contrib.training.create_train_op(total_loss, optimizer)
 
-    summary_manager = SummaryManager()
-
-    for sess, i, run_valid, batches_train, batches_test in run_epochs(
+    for sess, i, batches_train in run_epochs(
         num_epochs,
-        valid_interval=10,
         get_batches=(
             lambda: batch_iterator(x_train, y_train, training=True),
-            lambda: batch_iterator(x_test, y_test),
         ),
     ):
-        for x_batch, y_batch in batches_train:
+        for j, (x_batch, y_batch) in enumerate(batches_train):
+            start_time = time.time()
+
             (
                 _,
                 batch_loss,
@@ -105,33 +103,9 @@ def _train(
                     learning_rate: get_learning_rate(i),
                 },
             )
-            summary_manager['train'].add_batch(len(x_batch), {
-                'loss': batch_loss,
-                'regularization_loss': batch_regularization_loss,
-                'accuracy': batch_accuracy,
-            })
 
-        if run_valid:
-            for x_batch, y_batch in batches_test:
-                (
-                    batch_loss,
-                    batch_accuracy,
-                ) = sess.run(
-                    (
-                        loss,
-                        accuracy,
-                    ),
-                    feed_dict={
-                        x: x_batch,
-                        y_: y_batch,
-                    },
-                )
-                summary_manager['test'].add_batch(len(x_batch), {
-                    'loss': batch_loss,
-                    'accuracy': batch_accuracy,
-                })
-
-        summary_manager.write(i)
+            batch_time = time.time() - start_time
+            logging.info('epoch %d, batch %d: %.3fs', i, j, batch_time)
 
 
 # -----------------------------------------------------------------------------
