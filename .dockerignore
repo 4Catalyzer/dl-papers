@@ -1,0 +1,13 @@
+*
+
+!dl_papers/
+!requirements.txt
+!setup.py
+
+dl_papers/__pycache__
+dl_papers/*/__pycache__
+dl_papers/*/*/__pycache__
+
+dl_papers/*.py[cod]
+dl_papers/*/*.py[cod]
+dl_papers/*/*/*.py[cod]

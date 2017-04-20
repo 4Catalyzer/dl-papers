@@ -87,3 +87,9 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+# Downloaded data files.
+/data
+
+# Project output.
+/output
