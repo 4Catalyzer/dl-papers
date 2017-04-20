@@ -6,12 +6,12 @@ import math
 import time
 
 import click
-import numpy as np
 import tensorflow as tf
 
 from dl_papers.common.cli import cli
 from dl_papers.common.losses import global_l2_regularization_loss
 from dl_papers.datasets import cifar
+import dl_papers.datasets.cifar10_queue.cifar10 as cifar10_queue
 
 from . import models
 
@@ -36,14 +36,10 @@ def _train(
 ):
     logger.info("building graph")
 
-    x = tf.constant(
-        np.zeros((BATCH_SIZE,) + image_shape),
-        dtype=tf.float32,
-    )
-    y_ = tf.constant(
-        np.zeros((BATCH_SIZE,)),
-        dtype=tf.int32,
-    )
+    cifar10_queue.maybe_download_and_extract()
+
+    with tf.device('/cpu:0'):
+        x, y_ = cifar10_queue.distorted_inputs()
 
     logits = model(x, training=True)
 
@@ -61,6 +57,8 @@ def _train(
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
+
+        tf.train.start_queue_runners()
 
         for i in range(num_epochs):
             for j in range(CIFAR_NUM_BATCHES):
