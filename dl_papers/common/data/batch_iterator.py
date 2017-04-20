@@ -1,6 +1,5 @@
 import sys
 import threading
-from tqdm import tqdm
 
 import numpy as np
 import pandas as pd
@@ -101,9 +100,7 @@ class BatchIterator(object):
         if self.buffer_size:
             batches = BufferedIterator(batches, buffer_size=self.buffer_size)
 
-        # Don't wrap the batches with tqdm until after buffering, to avoid
-        # displaying a progress bar whilst eagerly generating batches.
-        return self.tqdm(batches, epoch_size, batch_size)
+        return batches
 
     def shuffle_data(self, *args):
         state = self.random.get_state()
@@ -153,11 +150,3 @@ class BatchIterator(object):
 
     def transform(self, data, *args):
         return (data,) + args if args else data
-
-    def tqdm(self, batches, epoch_size, batch_size):
-        with tqdm(
-            total=epoch_size, leave=False, disable=None, unit='ex',
-        ) as pbar:
-            for batch in batches:
-                yield batch
-                pbar.update(batch_size)

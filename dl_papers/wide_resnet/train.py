@@ -52,17 +52,11 @@ def _train(
 
     x = tf.placeholder(tf.float32, shape=(None,) + image_shape)
     y_ = tf.placeholder(tf.int32, shape=(None,))
-    training = tf.placeholder_with_default(False, shape=())
-    learning_rate = tf.placeholder(tf.float32, shape=())
 
-    logits = model(x, training=training)
-    y = tf.to_int32(tf.argmax(logits, axis=1))
+    logits = model(x, training=True)
 
     loss = tf.losses.sparse_softmax_cross_entropy(
         labels=y_, logits=logits,
-    )
-    accuracy = tf.contrib.metrics.accuracy(
-        labels=y_, predictions=y,
     )
 
     regularization_loss = global_l2_regularization_loss(
@@ -70,9 +64,7 @@ def _train(
     )
     total_loss = loss + regularization_loss
 
-    optimizer = tf.train.MomentumOptimizer(
-        learning_rate, 0.9, use_nesterov=True,
-    )
+    optimizer = tf.train.MomentumOptimizer(0.1, 0.9, use_nesterov=True)
     train_op = tf.contrib.training.create_train_op(total_loss, optimizer)
 
     for sess, i, batches_train in run_epochs(
@@ -88,19 +80,15 @@ def _train(
                 _,
                 batch_loss,
                 batch_regularization_loss,
-                batch_accuracy,
             ) = sess.run(
                 (
                     train_op,
                     loss,
                     regularization_loss,
-                    accuracy,
                 ),
                 feed_dict={
                     x: x_batch,
                     y_: y_batch,
-                    training: True,
-                    learning_rate: get_learning_rate(i),
                 },
             )
 
